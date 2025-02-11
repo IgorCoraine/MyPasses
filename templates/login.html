@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login - MyPasses</title>
+</head>
+<body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    {% if needs_setup %}
+        <h2>First Time Setup</h2>
+        <form method="POST" action="{{ url_for('setup') }}">
+            <input type="password" name="password" required placeholder="Create Master Password">
+            <input type="password" name="confirm_password" required placeholder="Confirm Master Password">
+            <button type="submit">Create Master Password</button>
+        </form>
+    {% else %}
+        <h2>Login</h2>
+        <form method="POST">
+            <input type="password" name="password" required placeholder="Master Password">
+            <button type="submit">Login</button>
+        </form>
+    {% endif %}
+</body>
+</html>
