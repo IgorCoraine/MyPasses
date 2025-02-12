@@ -51,17 +51,6 @@ def decrypt_data(encrypted_data, password, salt):
     f = Fernet(key)
     return json.loads(f.decrypt(encrypted_data))
 
-def save_master_password(hashed_password, salt):
-    data = {
-        'password': base64.b64encode(hashed_password).decode('utf-8'),
-        'salt': base64.b64encode(salt).decode('utf-8')
-    }
-    # Use the original password string for encryption
-    encrypted_data = encrypt_data(data, hashed_password, salt)
-    
-    with open(Config.MASTER_PASSWORD_FILE, 'wb') as f:
-        f.write(encrypted_data)
-
 def save_password_entry(title, data, master_password, salt):
     encrypted_data = encrypt_data(data, master_password, salt)
 
@@ -70,19 +59,6 @@ def save_password_entry(title, data, master_password, salt):
     with open(Config.PASSWORDS_FILE, 'ab') as f:
         entry = f"{title}: {encrypted_data.decode('utf-8')}\n"
         f.write(entry.encode('utf-8'))
-
-def save_master_password(password, salt):
-    hashed_password = hash_password(password, salt)
-    data = {
-        'password': base64.b64encode(hashed_password).decode('utf-8'),
-        'salt': base64.b64encode(salt).decode('utf-8')
-    }
-    key = get_encryption_key(password, salt)
-    f = Fernet(key)
-    encrypted_data = f.encrypt(json.dumps(data).encode())
-    
-    with open(Config.MASTER_PASSWORD_FILE, 'wb') as f:
-        f.write(encrypted_data)
 
 def verify_master_password(password):
     if not os.path.exists(Config.MASTER_PASSWORD_FILE):

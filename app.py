@@ -96,8 +96,7 @@ def change_password():
             return redirect(url_for('change_password'))
             
         salt = generate_salt()
-        hashed_password = hash_password(new_password, salt)
-        save_master_password(hashed_password, salt)
+        save_master_password(new_password, salt)
         
         flash('Password changed successfully', 'success')
         return redirect(url_for('dashboard'))

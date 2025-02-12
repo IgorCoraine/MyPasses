@@ -2,7 +2,8 @@
 <html>
 <head>
     <title>Dashboard - MyPasses</title>
-    <style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- <style>
         table {
             width: 100%;
             border-collapse: collapse;
@@ -30,7 +31,7 @@
             color: white;
             border-radius: 3px;
         }
-    </style>
+    </style> -->
 </head>
 <body>
     <h2>Dashboard</h2>
@@ -60,6 +61,7 @@
                 <td>{{ entry.notes }}</td>
                 <td>
                     <button onclick="showPassword('{{ entry.password }}')">Show Password</button>
+                    <button onclick="copyPassword('{{ entry.password }}')">Copy Password</button>
                 </td>
             </tr>
             {% endfor %}
@@ -71,7 +73,10 @@
     <script>
         function showPassword(password) {
             alert('Password: ' + password);
-            // In a production environment, consider using a modal or more secure way to display passwords
+        }
+        
+        function copyPassword(password) {
+            navigator.clipboard.writeText(password)
         }
     </script>
 </body>

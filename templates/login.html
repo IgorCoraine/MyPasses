@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Login - MyPasses</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     {% with messages = get_flashed_messages(with_categories=true) %}
