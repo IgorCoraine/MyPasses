@@ -2,8 +2,8 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from functools import wraps
 import os
 from utils import (
-    generate_salt, hash_password, save_master_password, 
-    verify_master_password
+    generate_salt, hash_password, save_master_password, hash_data,
+    verify_master_password, save_password_entry
 )
 from config import Config
 
@@ -56,6 +56,33 @@ def setup():
     flash('Master password created successfully', 'success')
     return redirect(url_for('login'))
 
+@app.route('/add_password', methods=['GET', 'POST'])
+@login_required
+def add_password():
+    if request.method == 'GET':
+        return render_template('add_password.html')
+    
+    title = request.form.get('title')
+    username = request.form.get('username')
+    password = request.form.get('password')
+    url = request.form.get('url')
+    notes = request.form.get('notes')
+
+    data = {
+        'title': title,
+        'username': username,
+        'password': password,
+        'url': url,
+        'notes': notes
+    }
+
+    salt = generate_salt()
+    hashed_data = hash_data(data, salt)
+
+    save_password_entry(title, hashed_data, salt)  # Updated function name
+
+    flash('Password added successfully', 'success')
+    return redirect(url_for('dashboard'))
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
 def change_password():

@@ -18,6 +18,16 @@ def hash_password(password, salt):
     )
     return base64.b64encode(kdf.derive(password.encode()))
 
+def hash_data(data, salt):
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=100000,
+    )
+    # Convert dictionary to string before encoding
+    data_string = json.dumps(data)
+    return base64.b64encode(kdf.derive(data_string.encode()))
 def encrypt_data(data):
     f = Fernet(Config.ENCRYPTION_KEY)
     return f.encrypt(json.dumps(data).encode())
@@ -35,6 +45,21 @@ def save_master_password(hashed_password, salt):
     
     with open(Config.MASTER_PASSWORD_FILE, 'wb') as f:
         f.write(encrypted_data)
+
+def save_password_entry(title, hashed_data, salt):
+    data = {
+        'password': base64.b64encode(hashed_data).decode('utf-8'),
+        'salt': base64.b64encode(salt).decode('utf-8')
+    }
+    encrypted_data = encrypt_data(data)
+
+    # Create directory if it doesn't exist
+    os.makedirs(os.path.dirname(Config.PASSWORDS_FILE), exist_ok=True)
+
+    with open(Config.PASSWORDS_FILE, 'ab') as f:
+        # Write as bytes with proper encoding
+        entry = f"{title}: {encrypted_data.decode('utf-8')}\n"
+        f.write(entry.encode('utf-8'))
 
 def verify_master_password(password):
     if not os.path.exists(Config.MASTER_PASSWORD_FILE):
