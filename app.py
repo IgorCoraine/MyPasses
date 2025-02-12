@@ -3,7 +3,7 @@ from functools import wraps
 import os
 from utils import (
     generate_salt, hash_password, save_master_password, hash_data,
-    verify_master_password, save_password_entry
+    verify_master_password, save_password_entry, get_stored_passwords
 )
 from config import Config
 
@@ -29,10 +29,10 @@ def login():
         
         if verify_master_password(password):
             session['authenticated'] = True
+            session['master_password'] = password  # Store the master password
             return redirect(url_for('dashboard'))
         flash('Invalid password', 'error')
     
-    # Check if first time setup is needed
     needs_setup = not os.path.exists(Config.MASTER_PASSWORD_FILE)
     return render_template('login.html', needs_setup=needs_setup)
 
@@ -50,8 +50,7 @@ def setup():
         return redirect(url_for('login'))
         
     salt = generate_salt()
-    hashed_password = hash_password(password, salt)
-    save_master_password(hashed_password, salt)
+    save_master_password(password, salt)
     
     flash('Master password created successfully', 'success')
     return redirect(url_for('login'))
@@ -62,27 +61,24 @@ def add_password():
     if request.method == 'GET':
         return render_template('add_password.html')
     
-    title = request.form.get('title')
-    username = request.form.get('username')
-    password = request.form.get('password')
-    url = request.form.get('url')
-    notes = request.form.get('notes')
+    master_password = session.get('master_password')
+    if not master_password:
+        flash('Session expired. Please login again.', 'error')
+        return redirect(url_for('login'))
 
     data = {
-        'title': title,
-        'username': username,
-        'password': password,
-        'url': url,
-        'notes': notes
+        'title': request.form.get('title'),
+        'username': request.form.get('username'),
+        'password': request.form.get('password'),
+        'url': request.form.get('url'),
+        'notes': request.form.get('notes')
     }
 
-    salt = generate_salt()
-    hashed_data = hash_data(data, salt)
-
-    save_password_entry(title, hashed_data, salt)  # Updated function name
-
+    # Use consistent salt
+    save_password_entry(data['title'], data, master_password, b'initial_salt')
     flash('Password added successfully', 'success')
     return redirect(url_for('dashboard'))
+
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
 def change_password():
@@ -111,8 +107,15 @@ def change_password():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    return render_template('dashboard.html')
-
+    master_password = session.get('master_password')
+    if not master_password:
+        flash('Session expired. Please login again.', 'error')
+        return redirect(url_for('login'))
+        
+    # Use a consistent salt for retrieval
+    salt = b'initial_salt'  # Same as used in save_master_password
+    stored_passwords = get_stored_passwords(master_password, salt)
+    return render_template('dashboard.html', passwords=stored_passwords)
 @app.route('/logout')
 def logout():
     session.clear()
