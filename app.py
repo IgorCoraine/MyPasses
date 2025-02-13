@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from functools import wraps
 import os
+from flask import jsonify
+from utils import generate_random_password
 from utils import (
     generate_salt, hash_password, save_master_password, hash_data,
     verify_master_password, save_password_entry, get_stored_passwords
@@ -115,6 +117,13 @@ def dashboard():
     salt = b'initial_salt'  # Same as used in save_master_password
     stored_passwords = get_stored_passwords(master_password, salt)
     return render_template('dashboard.html', passwords=stored_passwords)
+
+@app.route('/generate_password', methods=['POST'])
+@login_required
+def generate_password():
+    password = generate_random_password()
+    return jsonify({'password': password})
+
 @app.route('/logout')
 def logout():
     session.clear()
@@ -122,3 +131,4 @@ def logout():
 
 if __name__ == '__main__':
     app.run(debug=False)
+

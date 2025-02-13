@@ -5,6 +5,8 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import base64
 from config import Config
+import secrets
+import string
 
 def generate_salt():
     return os.urandom(16)
@@ -119,3 +121,8 @@ def get_stored_passwords(password, salt):
                 except:
                     continue
     return passwords
+
+def generate_random_password(length=32):
+    characters = string.ascii_letters + string.digits + string.punctuation
+    password = ''.join(secrets.choice(characters) for _ in range(length))
+    return password
