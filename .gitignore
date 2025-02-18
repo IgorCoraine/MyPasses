@@ -1,2 +1,3 @@
 instance/master.json
 instance/keys.keys
+.env

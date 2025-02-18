@@ -1,12 +1,9 @@
-import json
-import os
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-import base64
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC 
 from config import Config
-import secrets
-import string
+import secrets, base64, hashlib  
+import os, string, json, requests
 
 def generate_salt():
     return os.urandom(16)
@@ -126,3 +123,32 @@ def generate_random_password(length=32):
     characters = string.ascii_letters + string.digits + string.punctuation
     password = ''.join(secrets.choice(characters) for _ in range(length))
     return password
+
+def save_url_to_monitor(url):
+    if not url:
+        return
+        
+    os.makedirs(os.path.dirname(Config.URLS_MONITOR_FILE), exist_ok=True)
+    with open(Config.URLS_MONITOR_FILE, 'a') as f:
+        f.write(f"{url}\n")
+
+def check_password_pwned(data_list):
+    """Check if a password has been pwned using Have I Been Pwned API v3."""
+    pwned_itens = []
+    for item in data_list:
+        password = item['password']
+        hashed_password = hashlib.sha1(password.encode()).hexdigest().upper()
+        prefix, suffix = hashed_password[:5], hashed_password[5:]
+        api_url =f"https://api.pwnedpasswords.com/range/{prefix}"
+        response = requests.get(api_url)
+
+        if response.status_code != 200:
+            print(f"Error fetching data from Have I Been Pwned API: {response.status_code}")
+        else:
+            # Check if the hash suffix appears in the response
+            hashes = (line.split(':') for line in response.text.splitlines())
+            for hash, count in hashes:
+                if hash == suffix:
+                    pwned_itens.append(item)
+    print(pwned_itens)
+    return pwned_itens

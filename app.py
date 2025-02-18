@@ -4,10 +4,11 @@ import os
 from flask import jsonify
 from utils import generate_random_password
 from utils import (
-    generate_salt, hash_password, save_master_password, hash_data,
-    verify_master_password, save_password_entry, get_stored_passwords
+    generate_salt, hash_password, save_master_password, save_url_to_monitor,
+    verify_master_password, save_password_entry, get_stored_passwords, check_password_pwned
 )
 from config import Config
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -17,6 +18,17 @@ def login_required(f):
     def decorated_function(*args, **kwargs):
         if 'authenticated' not in session:
             return redirect(url_for('login'))
+            
+        # Check if session has expired
+        if 'last_activity' in session:
+            last_activity = datetime.fromisoformat(session['last_activity'])
+            if datetime.now() - last_activity > timedelta(seconds=Config.SESSION_TIMEOUT):
+                session.clear()
+                flash('Session expired. Please login again.', 'error')
+                return redirect(url_for('login'))
+                
+        # Update last activity timestamp
+        session['last_activity'] = datetime.now().isoformat()
         return f(*args, **kwargs)
     return decorated_function
 
@@ -31,7 +43,8 @@ def login():
         
         if verify_master_password(password):
             session['authenticated'] = True
-            session['master_password'] = password  # Store the master password
+            session['master_password'] = password
+            session['last_activity'] = datetime.now().isoformat()  # Add this line
             return redirect(url_for('dashboard'))
         flash('Invalid password', 'error')
     
@@ -76,6 +89,9 @@ def add_password():
         'notes': request.form.get('notes')
     }
 
+    # Save URL for monitoring
+    save_url_to_monitor(data['url'])
+
     # Use consistent salt
     save_password_entry(data['title'], data, master_password, b'initial_salt')
     flash('Password added successfully', 'success')
@@ -116,7 +132,9 @@ def dashboard():
     # Use a consistent salt for retrieval
     salt = b'initial_salt'  # Same as used in save_master_password
     stored_passwords = get_stored_passwords(master_password, salt)
-    return render_template('dashboard.html', passwords=stored_passwords)
+    pwned_itens = check_password_pwned(stored_passwords)
+    print(pwned_itens)
+    return render_template('dashboard.html', passwords=stored_passwords,pwneds=pwned_itens)
 
 @app.route('/generate_password', methods=['POST'])
 @login_required
@@ -132,3 +150,14 @@ def logout():
 if __name__ == '__main__':
     app.run(debug=False)
 
+
+@app.route('/check_session')
+def check_session():
+    if 'last_activity' not in session:
+        return jsonify({'expired': True})
+        
+    last_activity = datetime.fromisoformat(session['last_activity'])
+    if datetime.now() - last_activity > timedelta(seconds=Config.SESSION_TIMEOUT):
+        session.clear()
+        return jsonify({'expired': True})
+    return jsonify({'expired': False})

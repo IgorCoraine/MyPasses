@@ -5,6 +5,14 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+    {% if pwneds %}
+    {% for item in pwneds %}
+    <div class="notification">
+        <p><span>SENHA COMPROMETIDA UTILIZADA EM:</span> {{ item.url }}.</br>TROQUE A SENHA ASSIM QUE POSSÍVEL</p>
+        <button onclick="closeBanner(this)">&times;</button>
+    </div>    
+    {% endfor %}
+    {% endif %}
     <h2>Dashboard</h2>
     <nav>
         <a href="{{ url_for('change_password') }}" class="button">Change Master Password</a>
@@ -31,8 +39,8 @@
                 <td>{% if entry.url %}<a href="{{ entry.url }}" target="_blank">{{ entry.url }}</a>{% endif %}</td>
                 <td>{{ entry.notes }}</td>
                 <td>
-                    <button onclick="showPassword('{{ entry.password }}')">Show Password</button>
-                    <button onclick="copyPassword('{{ entry.password }}')">Copy Password</button>
+                    <button onclick='showPassword(decodeURIComponent("{{ entry.password|urlencode }}"))'>Show Password</button>
+                    <button onclick='copyPassword(decodeURIComponent("{{ entry.password|urlencode }}"))'>Copy Password</button>
                 </td>
             </tr>
             {% endfor %}
@@ -48,6 +56,23 @@
         
         function copyPassword(password) {
             navigator.clipboard.writeText(password)
+        }
+    </script>
+    <script>
+        // Check session every minute
+        setInterval(function() {
+            fetch('/check_session')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.expired) {
+                        window.location.href = '/login';
+                    }
+                });
+        }, 60000);
+    </script>
+    <script>
+        function closeBanner(button) {
+            button.parentElement.style.display = "none";
         }
     </script>
 </body>
