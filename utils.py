@@ -124,6 +124,20 @@ def generate_random_password(length=32):
     password = ''.join(secrets.choice(characters) for _ in range(length))
     return password
 
+# Função para salvar as senhas atualizadas no arquivo
+def save_passwords(passwords, master_password, salt):
+    key = Fernet(get_encryption_key(master_password, salt))
+    with open(Config.PASSWORDS_FILE, 'wb') as f:
+        for entry in passwords:
+            title = entry['title']
+            encrypted_data = key.encrypt(json.dumps({
+                'username': entry['username'],
+                'password': entry['password'],
+                'url': entry['url'],
+                'notes': entry['notes']
+            }).encode('utf-8'))
+            f.write(f"{title}: {encrypted_data.decode('utf-8')}\n".encode('utf-8'))
+
 def save_url_to_monitor(url):
     if not url:
         return
@@ -131,6 +145,18 @@ def save_url_to_monitor(url):
     os.makedirs(os.path.dirname(Config.URLS_MONITOR_FILE), exist_ok=True)
     with open(Config.URLS_MONITOR_FILE, 'a') as f:
         f.write(f"{url}\n")
+
+def delete_url_from_monitor(url):
+    # Read all lines from the URL monitor file
+    with open(Config.URLS_MONITOR_FILE, 'r') as f:
+        lines = f.readlines()
+
+    # Filter out the URL associated with the title
+    with open(Config.URLS_MONITOR_FILE, 'w') as f:
+        for line in lines:
+            if line.strip() == url:
+                continue  # Skip the URL to be deleted
+            f.write(line)
 
 def check_password_pwned(data_list):
     """Check if a password has been pwned using Have I Been Pwned API v3."""

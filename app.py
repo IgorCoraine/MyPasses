@@ -4,8 +4,8 @@ import os
 from flask import jsonify
 from utils import generate_random_password
 from utils import (
-    generate_salt, hash_password, save_master_password, save_url_to_monitor,
-    verify_master_password, save_password_entry, get_stored_passwords, check_password_pwned
+    generate_salt, hash_password, save_master_password, save_url_to_monitor, encrypt_data, save_passwords,
+    verify_master_password, save_password_entry, get_stored_passwords, check_password_pwned, delete_url_from_monitor
 )
 from config import Config
 from datetime import datetime, timedelta
@@ -96,6 +96,75 @@ def add_password():
     save_password_entry(data['title'], data, master_password, b'initial_salt')
     flash('Password added successfully', 'success')
     return redirect(url_for('dashboard'))
+
+@app.route('/edit_password/<title>', methods=['GET', 'POST'])
+@login_required
+def edit_password(title):
+    master_password = session.get('master_password')
+    if not master_password:
+        flash('Session expired. Please login again.', 'error')
+        return redirect(url_for('login'))
+
+    salt = b'initial_salt'  # Consistent salt for retrieval
+    stored_passwords = get_stored_passwords(master_password, salt)
+    password_data = next((p for p in stored_passwords if p['title'] == title), None)
+
+    if not password_data:
+        flash('Password entry not found', 'error')
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        updated_data = {
+            'title': request.form.get('title'),
+            'username': request.form.get('username'),
+            'password': request.form.get('password'),
+            'url': request.form.get('url'),
+            'notes': request.form.get('notes')
+        }
+
+        # Substitua a senha existente na lista
+        for idx, entry in enumerate(stored_passwords):
+            if entry['title'] == title:
+                stored_passwords[idx] = updated_data  # Atualiza a entrada
+
+        # Re-salvar todas as senhas no arquivo
+        save_passwords(stored_passwords, master_password, salt)
+
+        flash('Password updated successfully', 'success')
+        return redirect(url_for('dashboard'))
+
+    return render_template('edit_password.html', password_data=password_data)
+
+
+@app.route('/delete_password/<title>', methods=['GET'])
+@login_required
+def delete_password(title):
+    master_password = session.get('master_password')
+    if not master_password:
+        flash('Session expired. Please login again.', 'error')
+        return redirect(url_for('login'))
+
+    salt = b'initial_salt'  # Consistent salt for retrieval
+    stored_passwords = get_stored_passwords(master_password, salt)
+
+    # Filter out the password entry to delete
+    updated_passwords = [p for p in stored_passwords if p['title'] != title]
+    for password in stored_passwords:
+        if password['title'] == title:
+            url = password['url']
+    delete_url_from_monitor(url)
+
+    # Rewrite the file with the remaining passwords
+    os.makedirs(os.path.dirname(Config.PASSWORDS_FILE), exist_ok=True)
+    with open(Config.PASSWORDS_FILE, 'wb') as f:
+        for entry in updated_passwords:
+            encrypted_data = encrypt_data(entry, master_password, salt)
+            entry_str = f"{entry['title']}: {encrypted_data.decode('utf-8')}\n"
+            f.write(entry_str.encode('utf-8'))
+
+    flash('Password deleted successfully', 'success')
+    return redirect(url_for('dashboard'))
+
 
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required

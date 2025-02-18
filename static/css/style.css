@@ -32,6 +32,10 @@ nav a:hover {
     background-color: #861A60;
 }
 
+.crud{
+    margin-left: 1em;
+}
+
 /* Forms */
 form {
     background: #2d2d2d;
@@ -170,6 +174,11 @@ a:not(.button):hover {
     text-align: center;  /* Centraliza o texto */
     margin: 0; /* Remove margens padrão do `<p>` */
 }
+
+.hidden {
+    display: none;
+}
+
 
 /* Media Queries for Responsiveness */
 @media screen and (max-width: 48rem) {
