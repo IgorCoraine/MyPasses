@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
+    <!-- Passwords pwned -->
     {% if pwneds %}
     {% for item in pwneds %}
     <div class="notification">
@@ -13,6 +14,13 @@
         <button onclick="closeBanner(this)">&times;</button>
     </div>    
     {% endfor %}
+    {% endif %}
+    <!-- App leaks -->
+    {% if leaks %}
+    <div class="notification">
+        <p>{{ leaks | safe }}</p>
+        <button onclick="closeBanner(this)">&times;</button>
+    </div> 
     {% endif %}
     <h2>Dashboard</h2>
     <nav>

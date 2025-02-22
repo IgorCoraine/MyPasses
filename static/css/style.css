@@ -173,6 +173,7 @@ a:not(.button):hover {
     flex-grow: 1;  /* Faz o texto ocupar o máximo de espaço possível */
     text-align: center;  /* Centraliza o texto */
     margin: 0; /* Remove margens padrão do `<p>` */
+    display: block;
 }
 
 .hidden {

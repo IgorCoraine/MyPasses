@@ -1,14 +1,15 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from functools import wraps
-import os
 from flask import jsonify
 from utils import generate_random_password
 from utils import (
-    generate_salt, hash_password, save_master_password, save_url_to_monitor, encrypt_data, save_passwords,
+    generate_salt, save_master_password, save_url_to_monitor, encrypt_data, save_passwords,
     verify_master_password, save_password_entry, get_stored_passwords, check_password_pwned, delete_url_from_monitor
 )
 from config import Config
 from datetime import datetime, timedelta
+from crew.crew import SecurityCrew
+import os, markdown, re
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -202,8 +203,22 @@ def dashboard():
     salt = b'initial_salt'  # Same as used in save_master_password
     stored_passwords = get_stored_passwords(master_password, salt)
     pwned_itens = check_password_pwned(stored_passwords)
-    print(pwned_itens)
-    return render_template('dashboard.html', passwords=stored_passwords,pwneds=pwned_itens)
+
+    # Verifica se já rodou a crew na sessão
+    if not session.get('leaks', False):
+        urls_to_monitor = [p['url'] for p in stored_passwords]
+        inputs = {
+            'urls_to_monitor': urls_to_monitor, 
+            'date': str(datetime.now())
+        }
+
+        # Executa a Crew apenas uma vez após login
+        crew = SecurityCrew()
+        data_leaks = str(crew.run(inputs=inputs))
+        session['leaks'] = markdown.markdown(data_leaks)
+        session['leaks'] = re.sub(r"</?tr>", "", session.get('leaks'))
+
+    return render_template('dashboard.html', passwords=stored_passwords,pwneds=pwned_itens, leaks=session.get('leaks'))
 
 @app.route('/generate_password', methods=['POST'])
 @login_required

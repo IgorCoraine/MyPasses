@@ -1,126 +1,112 @@
 from crewai import Agent, Crew, Task, Process, LLM
 from crewai.tools import tool
-from langchain_community.tools import DuckDuckGoSearchResults, DuckDuckGoSearchRun
-import os, datetime
-
+from langchain_community.tools import DuckDuckGoSearchResults
 from dotenv import load_dotenv
+import os
+
 load_dotenv()
-  
-OpenAI = LLM(
-    model="gpt-4o-mini",
-    temperature=0.1,
-    max_tokens=150,
-    top_p=0.9,
-    frequency_penalty=0.1,
-    presence_penalty=0.1,
-    stop=["END"],
-    seed=42
-)
 
-def prepare_inputs(self, inputs):
-  # Read URLs from the file
-  with open('data/urls_to_monitor.txt', 'r') as file:
-      urls = [line.strip() for line in file if line.strip()]
-  inputs['urls_to_monitor'] = urls
-  return inputs
+class SecurityCrew:
+    def __init__(self):
+        self.OpenAI = LLM(
+            model="gpt-4o-mini",
+            temperature=0.1,
+            top_p=0.9,
+            frequency_penalty=0.1,
+            presence_penalty=0.1,
+            stop=["END"],
+            seed=42
+        )
 
-def process_output(self, output):
-  # Modify output after the crew finishes
-  output.raw += "\nProcessed after kickoff."
-  print("Terminei de rodar tudo!")
-  return output
+        self.security_researcher = Agent(
+            role='Security Researcher',
+            goal='Find the latest security vulnerabilities and exploits in the target systems.',
+            backstory='An expert in cybersecurity with a focus on vulnerability assessment.',
+            verbose=False,
+            allow_delegation=False,
+            tools=[self.search_tool],
+            max_iter=10,
+            llm=self.OpenAI
+        )
 
-@tool("DuckDuckGo Search Tool")
-def search_tool(query: str) -> str:
-  """Search the web for a given query."""
-  duckduckgo_tool = DuckDuckGoSearchResults()
-  response = duckduckgo_tool.invoke(query)
-  return response
+        self.security_analyst = Agent(
+            role='Security Analyst',
+            goal='Analyze the collected data and report any data leak issues.',
+            backstory='A skilled analyst with a keen eye for security threats.',
+            verbose=False,
+            allow_delegation=False,
+            max_iter=10,
+            llm=self.OpenAI,
+            callback=self.post_action
+        )
 
-def post_action():
-  # salvar um arquivo
-  # enviar_email(contexto)
-  # enviar um email
-  # atualizar um banco de dados
-  # enviar uma mensagem de whats
-  print("Terminei de rodar tudo!")
+        self.searching_tasks = []
 
-security_researcher = Agent(
-    role='Security Researcher',
-    goal='Find the latest security vulnerabilities and exploits in the target systems.',
-    backstory='An expert in cybersecurity with a focus on vulnerability assessment.',
-    verbose=False,
-    allow_delegation=False,
-    tools=[search_tool],
-    max_iter=10,
-    llm=OpenAI
-)
+        self.analyze_leaks = Task(
+            description='Analyze the collected data and report any data leak issues.',
+            expected_output="""A report of all data leak issues found by the researchers. If it does not find any data leak issues, it should not be listed in the report. The report must be in Brazilian Portuguese.
+            The report should follow the following format for each issue:
+            **VAZAMENTO DE DADOS**
+            **Aplicativo:**  
+            **Data do Vazamento:**
+            **Dados Comprometidos:** 
+            **Tipo de Dados Comprometidos:** 
+            **Número de Clientes Afetados:**
+            **Fonte do Vazamento:**
+            /n
+            **Considere trocar a senha e atualizar esse aplicativo**
+            ---""",
+            agent=self.security_analyst
+        )
 
-security_analyst = Agent(
-    role='Security Analyst',
-    goal='Analyze the collected data and report any data leak issues.',
-    backstory='A skilled analyst with a keen eye for security threats.',
-    verbose=False,
-    allow_delegation=False,
-    max_iter=10,
-    llm=OpenAI,
-    callback=post_action
-)
+    @staticmethod
+    def prepare_inputs(inputs):
+        # Read URLs from the file
+        with open('data/urls_to_monitor.txt', 'r') as file:
+            urls = [line.strip() for line in file if line.strip()]
+        inputs['urls_to_monitor'] = urls
+        return inputs
 
-search_for_leaks = Task(
-    description='Search if any ingormation was pwned from any of this applications: {urls_to_monitor}, during last 30 days, considering the today as {date}.',
-    expected_output='A sublist from {urls_to_monitor}, with the applications that had clients data compromissed in the last 30 days, giving datails about the data compromissed, the date of the leak, the type of data compromissed, the number of clients affected, and the source of the leak.',
-    agent=security_researcher
-)
+    @staticmethod
+    def process_output(output):
+        # Modify output after the crew finishes
+        output.raw += "\nProcessed after kickoff."
+        print("Terminei de rodar tudo!")
+        return output
 
-analyze_leaks = Task(
-    description='Analyze the collected data and report any data leak issues.',
-    expected_output='A report of any data leak issues found in the target systems in Brasilian potuguese.', 
-    agent=security_analyst
-)
+    @staticmethod
+    @tool("DuckDuckGo Search Tool")
+    def search_tool(query: str) -> str:
+        """Search the web for a given query."""
+        duckduckgo_tool = DuckDuckGoSearchResults()
+        response = duckduckgo_tool.invoke(query)
+        return response
 
-security_crew = Crew(
-    agents=[security_researcher, security_analyst],
-    tasks=[search_for_leaks, analyze_leaks],
-    process=Process.sequential,
-    verbose=True,
-)
+    @staticmethod
+    def post_action():
+        # Actions after the process ends
+        print("Terminei de rodar tudo!")
+
+    def run(self, inputs):
+        urls_to_monitor = inputs['urls_to_monitor']
+
+        for url in urls_to_monitor:
+            self.searching_tasks.append(
+                Task(
+                description='Search if any information was pwned from each of these applications: , during the last 30 days, considering today as {date}.',
+                expected_output=f'Informations of client data compromised from {url} in the last 30 days, giving details about the data compromised, the date of the leak, the type of data compromised, the number of clients affected, and the source of the leak.',
+                agent=self.security_researcher
+                )
+            )
+
+        self.searching_tasks.append(self.analyze_leaks)
+
+        self.security_crew = Crew(
+            agents=[self.security_researcher, self.security_analyst],
+            tasks=self.searching_tasks,
+            process=Process.sequential,
+            verbose=False,
+        )
 
 
-# Define the inputs for the crew
-inputs = {
-    'urls_to_monitor': ['htpps://youtube.com', 'https://github.com', 'Doxbin (TOoDA)'], 
-    'date': str(datetime.datetime.now())
-    }
-
-
-try:
-  # Kickoff the crew
-  result = security_crew.kickoff(inputs=inputs)
-
-  print("Resultado Final", result)
-except Exception as e:
-        raise Exception(f"An error occurred while running the crew: {e}")
-          
-
-
-def check_password_pwned(password):
-    """Check if a password has been pwned using Have I Been Pwned API v3."""
-    # Hash the password using SHA-1
-    sha1_hash = hashlib.sha1(password.encode()).hexdigest().upper()
-    prefix, suffix = sha1_hash[:5], sha1_hash[5:]
-    
-    # Query the HIBP API
-    url = f"https://api.pwnedpasswords.com/range/{prefix}"
-    response = requests.get(url)
-    
-    if response.status_code != 200:
-        raise Exception("Error fetching data from HIBP API.")
-    
-    # Check if the hash suffix appears in the response
-    hashes = (line.split(':') for line in response.text.splitlines())
-    for hash_suffix, count in hashes:
-        if hash_suffix == suffix:
-            return f"Password found {count} times! Consider using a stronger password."
-    
-    return "Password is safe (not found in HIBP database)."
+        return self.security_crew.kickoff(inputs=inputs)
