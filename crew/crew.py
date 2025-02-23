@@ -25,7 +25,7 @@ class SecurityCrew:
             verbose=False,
             allow_delegation=False,
             tools=[self.search_tool],
-            max_iter=10,
+            max_iter=3,
             llm=self.OpenAI
         )
 
@@ -53,7 +53,6 @@ class SecurityCrew:
             **Tipo de Dados Comprometidos:** 
             **Número de Clientes Afetados:**
             **Fonte do Vazamento:**
-            /n
             **Considere trocar a senha e atualizar esse aplicativo**
             ---""",
             agent=self.security_analyst
@@ -105,7 +104,7 @@ class SecurityCrew:
             agents=[self.security_researcher, self.security_analyst],
             tasks=self.searching_tasks,
             process=Process.sequential,
-            verbose=False,
+            verbose=True,
         )
 
 

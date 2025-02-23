@@ -142,7 +142,7 @@ a:not(.button):hover {
 }
 
 .notification {
-    position: relative; /* Now relative to container */
+    position: relative;
     width: 100%;
     padding: 0.5rem;
     text-align: center;
@@ -150,20 +150,26 @@ a:not(.button):hover {
     color: #D56199;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;  /* Mudado para flex-start */
     border-radius: 5px;
     box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
     opacity: 1;
     transition: opacity 0.3s ease;
     margin-bottom: 0.5em;
 }
+
 .notification button {
     background: none;
     border: none;
     color: #D56199;
     font-size: 2rem;
     cursor: pointer;
-    margin: 1.5rem;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+    position: absolute;
+    top: 0.2rem;
+    right: 0.5rem;
 }
 .notification span{
     font-weight: bold;
@@ -174,6 +180,12 @@ a:not(.button):hover {
     text-align: center;  /* Centraliza o texto */
     margin: 0; /* Remove margens padrão do `<p>` */
     display: block;
+}
+
+.inline-icon {
+    height: 1.2em;
+    width: auto;
+    vertical-align: middle;
 }
 
 .hidden {

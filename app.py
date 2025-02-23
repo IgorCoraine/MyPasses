@@ -191,6 +191,27 @@ def change_password():
         
     return render_template('change_password.html')
 
+@app.route('/run_crew')
+@login_required
+def run_crew():
+    #get master password and salt
+    master_password = session.get('master_password')
+    salt = b'initial_salt'  
+    #get data
+    stored_passwords = get_stored_passwords(master_password, salt)
+    # Verifica se já rodou a crew na sessão
+    if not session.get('leaks', False):
+        urls_to_monitor = [p['url'] for p in stored_passwords]
+        crew = SecurityCrew()
+        inputs = {
+            'urls_to_monitor': urls_to_monitor, 
+            'date': str(datetime.now())
+        }
+        data_leaks = str(crew.run(inputs=inputs))
+        session['leaks'] = markdown.markdown(data_leaks)
+
+    return session.get('leaks')
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
@@ -203,20 +224,6 @@ def dashboard():
     salt = b'initial_salt'  # Same as used in save_master_password
     stored_passwords = get_stored_passwords(master_password, salt)
     pwned_itens = check_password_pwned(stored_passwords)
-
-    # Verifica se já rodou a crew na sessão
-    if not session.get('leaks', False):
-        urls_to_monitor = [p['url'] for p in stored_passwords]
-        inputs = {
-            'urls_to_monitor': urls_to_monitor, 
-            'date': str(datetime.now())
-        }
-
-        # Executa a Crew apenas uma vez após login
-        crew = SecurityCrew()
-        data_leaks = str(crew.run(inputs=inputs))
-        session['leaks'] = markdown.markdown(data_leaks)
-        session['leaks'] = re.sub(r"</?tr>", "", session.get('leaks'))
 
     return render_template('dashboard.html', passwords=stored_passwords,pwneds=pwned_itens, leaks=session.get('leaks'))
 
