@@ -1,3 +1,8 @@
+"""
+Utility functions for MyPasses application.
+Handles cryptographic operations, password management, and security checks.
+"""
+
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC 
@@ -5,10 +10,13 @@ from config import Config
 import secrets, base64, hashlib  
 import os, string, json, requests
 
-def generate_salt():
+# Cryptographic Functions
+def generate_salt() -> bytes:
+    """Generate random salt for password hashing."""
     return os.urandom(16)
 
-def hash_password(password, salt):
+def hash_password(password: str, salt: bytes) -> bytes:
+    """Hash password using PBKDF2 with SHA256."""
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
@@ -17,69 +25,73 @@ def hash_password(password, salt):
     )
     return base64.b64encode(kdf.derive(password.encode()))
 
-def hash_data(data, salt):
+def hash_data(data: dict, salt: bytes) -> bytes:
+    """Hash dictionary data using PBKDF2."""
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
         salt=salt,
         iterations=100000,
     )
-    # Convert dictionary to string before encoding
     data_string = json.dumps(data)
     return base64.b64encode(kdf.derive(data_string.encode()))
 
-def get_encryption_key(password, salt):
+def get_encryption_key(password: str | bytes, salt: bytes) -> bytes:
+    """Generate encryption key from password and salt."""
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
         salt=salt,
         iterations=100000,
     )
-    # Handle both string and bytes input
     if isinstance(password, str):
         password = password.encode()
     return base64.b64encode(kdf.derive(password))
 
-def encrypt_data(data, password, salt):
+# Data Encryption Functions
+def encrypt_data(data: dict, password: str, salt: bytes) -> bytes:
+    """Encrypt data using Fernet symmetric encryption."""
     key = get_encryption_key(password, salt)
     f = Fernet(key)
     return f.encrypt(json.dumps(data).encode())
 
-def decrypt_data(encrypted_data, password, salt):
+def decrypt_data(encrypted_data: bytes, password: str, salt: bytes) -> dict:
+    """Decrypt data using Fernet symmetric encryption."""
     key = get_encryption_key(password, salt)
     f = Fernet(key)
     return json.loads(f.decrypt(encrypted_data))
 
-def save_password_entry(title, data, master_password, salt):
+# Password Management Functions
+def save_password_entry(title: str, data: dict, master_password: str, salt: bytes) -> None:
+    """Save encrypted password entry to storage."""
     encrypted_data = encrypt_data(data, master_password, salt)
-
     os.makedirs(os.path.dirname(Config.PASSWORDS_FILE), exist_ok=True)
-
+    
     with open(Config.PASSWORDS_FILE, 'ab') as f:
         entry = f"{title}: {encrypted_data.decode('utf-8')}\n"
         f.write(entry.encode('utf-8'))
 
-def verify_master_password(password):
+def verify_master_password(password: str) -> bool:
+    """Verify master password against stored hash."""
     if not os.path.exists(Config.MASTER_PASSWORD_FILE):
         return False
         
     with open(Config.MASTER_PASSWORD_FILE, 'rb') as f:
         encrypted_data = f.read()
     
-    # First decrypt using master password to get the stored salt
     key = Fernet(get_encryption_key(password, b'initial_salt'))
     try:
         decrypted_data = json.loads(key.decrypt(encrypted_data))
         stored_salt = base64.b64decode(decrypted_data['salt'].encode('utf-8'))
         stored_password = base64.b64decode(decrypted_data['password'].encode('utf-8'))
         
-        # Verify using the stored salt
         test_hash = hash_password(password, stored_salt)
         return test_hash == stored_password
     except:
         return False
 
-def save_master_password(password, salt):
+def save_master_password(password: str, salt: bytes) -> None:
+    """Save master password hash and salt."""
     hashed_password = hash_password(password, salt)
     data = {
         'password': base64.b64encode(hashed_password).decode('utf-8'),
@@ -91,13 +103,13 @@ def save_master_password(password, salt):
     
     with open(Config.MASTER_PASSWORD_FILE, 'wb') as f:
         f.write(encrypted_data)
-    
-def get_stored_passwords(password, salt):
+
+def get_stored_passwords(password: str, salt: bytes) -> list:
+    """Retrieve and decrypt stored passwords."""
     if not os.path.exists(Config.PASSWORDS_FILE):
         return []
         
     passwords = []
-    # Use the same key derivation as when saving
     key = Fernet(get_encryption_key(password, b'initial_salt'))
     
     with open(Config.PASSWORDS_FILE, 'rb') as f:
@@ -119,13 +131,13 @@ def get_stored_passwords(password, salt):
                     continue
     return passwords
 
-def generate_random_password(length=32):
+def generate_random_password(length: int = 32) -> str:
+    """Generate cryptographically secure random password."""
     characters = string.ascii_letters + string.digits + string.punctuation
-    password = ''.join(secrets.choice(characters) for _ in range(length))
-    return password
+    return ''.join(secrets.choice(characters) for _ in range(length))
 
-# Função para salvar as senhas atualizadas no arquivo
-def save_passwords(passwords, master_password, salt):
+def save_passwords(passwords: list, master_password: str, salt: bytes) -> None:
+    """Save updated password list to storage."""
     key = Fernet(get_encryption_key(master_password, salt))
     with open(Config.PASSWORDS_FILE, 'wb') as f:
         for entry in passwords:
@@ -138,7 +150,9 @@ def save_passwords(passwords, master_password, salt):
             }).encode('utf-8'))
             f.write(f"{title}: {encrypted_data.decode('utf-8')}\n".encode('utf-8'))
 
-def save_url_to_monitor(url):
+# URL Monitoring Functions
+def save_url_to_monitor(url: str) -> None:
+    """Add URL to monitoring list."""
     if not url:
         return
         
@@ -146,35 +160,31 @@ def save_url_to_monitor(url):
     with open(Config.URLS_MONITOR_FILE, 'a') as f:
         f.write(f"{url}\n")
 
-def delete_url_from_monitor(url):
-    # Read all lines from the URL monitor file
+def delete_url_from_monitor(url: str) -> None:
+    """Remove URL from monitoring list."""
     with open(Config.URLS_MONITOR_FILE, 'r') as f:
         lines = f.readlines()
 
-    # Filter out the URL associated with the title
     with open(Config.URLS_MONITOR_FILE, 'w') as f:
         for line in lines:
-            if line.strip() == url:
-                continue  # Skip the URL to be deleted
-            f.write(line)
+            if line.strip() != url:
+                f.write(line)
 
-def check_password_pwned(data_list):
-    """Check if a password has been pwned using Have I Been Pwned API v3."""
-    pwned_itens = []
+def check_password_pwned(data_list: list) -> list:
+    """Check if passwords have been compromised using HIBP API."""
+    pwned_items = []
     for item in data_list:
         password = item['password']
         hashed_password = hashlib.sha1(password.encode()).hexdigest().upper()
         prefix, suffix = hashed_password[:5], hashed_password[5:]
-        api_url =f"https://api.pwnedpasswords.com/range/{prefix}"
+        api_url = f"https://api.pwnedpasswords.com/range/{prefix}"
         response = requests.get(api_url)
 
-        if response.status_code != 200:
-            print(f"Error fetching data from Have I Been Pwned API: {response.status_code}")
-        else:
-            # Check if the hash suffix appears in the response
+        if response.status_code == 200:
             hashes = (line.split(':') for line in response.text.splitlines())
-            for hash, count in hashes:
-                if hash == suffix:
-                    pwned_itens.append(item)
-    print(pwned_itens)
-    return pwned_itens
+            for hash_suffix, count in hashes:
+                if hash_suffix == suffix:
+                    pwned_items.append(item)
+                    break
+    
+    return pwned_items

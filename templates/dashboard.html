@@ -1,81 +1,136 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - MyPasses</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <!-- Passwords pwned -->
+    <!-- Security Notifications Section -->
     {% if pwneds %}
         {% for item in pwneds %}
             <div class="notification">
-                <p><icon class="fas fa-exclamation-triangle"></icon> SENHA COMPROMETIDA UTILIZADA EM: <span>{{ item.title }}</span>.</br>TROQUE A SENHA ASSIM QUE POSSÍVEL</p>
-                <button onclick="closeBanner(this)">&times;</button>
+                <p>
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    SENHA COMPROMETIDA UTILIZADA EM: <span>{{ item.title }}</span>
+                    </br>TROQUE A SENHA ASSIM QUE POSSÍVEL
+                </p>
+                <button onclick="closeBanner(this)">×</button>
             </div>    
         {% endfor %}
     {% endif %}
-    <!-- App leaks -->
+
+    <!-- Data Leak Scanner -->
     <div class="notification">
-        <p id="app-leaks"><img src="{{ url_for('static', filename='images/buffering.gif') }}" class="inline-icon"> Pesquisando vazamentos de dados <img src="{{ url_for('static', filename='images/buffering.gif') }}" class="inline-icon"></p> 
-        <button onclick="closeBanner(this)">&times;</button>
+        <p id="app-leaks">
+            <img src="{{ url_for('static', filename='images/buffering.gif') }}" class="inline-icon"> 
+            Pesquisando vazamentos de dados 
+            <img src="{{ url_for('static', filename='images/buffering.gif') }}" class="inline-icon">
+        </p> 
+        <button onclick="closeBanner(this)">×</button>
     </div> 
+
+    <!-- Main Content -->
     <h2>Dashboard</h2>
+
+    <!-- Navigation Menu -->
     <nav>
-        <a href="{{ url_for('change_password') }}" class="button">Change Master Password</a>
-        <a href="{{ url_for('logout') }}" class="button">Logout</a>
-        <a href="{{ url_for('add_password') }}" class="button">Add Password</a>
+        <a href="{{ url_for('change_password') }}" class="button">Alterar Senha Mestra</a>
+        <a href="{{ url_for('logout') }}" class="button">Sair</a>
+        <a href="{{ url_for('add_password') }}" class="button">Adicionar Senha</a>
     </nav>
 
+    <!-- Passwords Table -->
     {% if passwords %}
-    <table>
-        <thead>
-            <tr>
-                <th>Title</th>
-                <th>Username</th>
-                <th>URL</th>
-                <th>Notes</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for entry in passwords %}
-            <tr>
-                <td>{{ entry.title }}</td>
-                <td>{{ entry.username }}</td>
-                <td>{% if entry.url %}<a href="{{ entry.url }}" target="_blank">{{ entry.url }}</a>{% endif %}</td>
-                <td>{{ entry.notes }}</td>
-                <td>
-                    <button onclick='showPassword(decodeURIComponent("{{ entry.password|urlencode }}"))'>Show Password</button>
-                    <button onclick='copyPassword(decodeURIComponent("{{ entry.password|urlencode }}"))'>Copy Password</button>
-                    <a href="{{ url_for('edit_password', title=entry.title) }}" class="fa fa-pencil crud"></a>
-                    <a href="{{ url_for('delete_password', title=entry.title) }}" class="fa fa-trash crud" onclick="return confirm('Are you sure you want to delete this password?')"></a>
-                </td>
-                <td>
-                    {% for item in pwneds %}
-                        {% if item.url == entry.url %}
-                            <icon class="fas fa-exclamation-triangle" id="alerta" style="color: red;"></icon>
+        <table>
+            <thead>
+                <tr>
+                    <th>Título</th>
+                    <th>Usuário</th>
+                    <th>URL</th>
+                    <th>Notas</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in passwords %}
+                <tr>
+                    <td>{{ entry.title }}</td>
+                    <td>{{ entry.username }}</td>
+                    <td>
+                        {% if entry.url %}
+                            <a href="{{ entry.url }}" target="_blank">{{ entry.url }}</a>
                         {% endif %}
-                    {% endfor %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>    {% else %}
-    <p>No passwords stored yet. Click "Add Password" to get started.</p>
+                    </td>
+                    <td>{{ entry.notes }}</td>
+                    <td>
+                        <button onclick='showPassword(decodeURIComponent("{{ entry.password|urlencode }}"))'>
+                            Mostrar Senha
+                        </button>
+                        <button onclick='copyPassword(decodeURIComponent("{{ entry.password|urlencode }}"))'>
+                            Copiar Senha
+                        </button>
+                        <a href="{{ url_for('edit_password', title=entry.title) }}" class="fa fa-pencil crud"></a>
+                        <a href="{{ url_for('delete_password', title=entry.title) }}" 
+                           class="fa fa-trash crud" 
+                           onclick="return confirm('Tem certeza que deseja deletar esta senha?')">
+                        </a>
+                    </td>
+                    <td>
+                        {% for item in pwneds %}
+                            {% if item.url == entry.url %}
+                                <i class="fas fa-exclamation-triangle" id="alerta" style="color: red;"></i>
+                            {% endif %}
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>    
+    {% else %}
+        <p>Nenhuma senha armazenada. Clique em "Adicionar Senha" para começar.</p>
     {% endif %}
 
+    <!-- Scripts -->
     <script>
+        // Password Management Functions
         function showPassword(password) {
-            alert('Password: ' + password);
+            alert('Senha: ' + password);
         }
         
         function copyPassword(password) {
-            navigator.clipboard.writeText(password)
+            navigator.clipboard.writeText(password);
         }
-    </script>
-    <script>
-        // Check session every minute
+
+        // Notification Management
+        function closeBanner(button) {
+            button.parentElement.style.display = "none";
+        }
+
+        // Data Leak Scanner
+        document.addEventListener("DOMContentLoaded", function() {
+            fetch('/run_crew')
+                .then(response => response.text())
+                .then(data => {
+                    let banner = document.getElementById("app-leaks");
+                    if (data) {
+                        banner.innerHTML = data;
+                    }
+                })
+                .catch(error => {
+                    console.error("Error fetching leaks:", error);
+                });
+        });
+
+        // Alert Handler
+        document.getElementById("alerta")?.addEventListener("click", function(event) {
+            event.preventDefault();
+            alert("SENHA COMPROMETIDA. TROQUE A SENHA ASSIM QUE POSSÍVEL");
+        });
+
+        // Session Check
         setInterval(function() {
             fetch('/check_session')
                 .then(response => response.json())
@@ -85,33 +140,6 @@
                     }
                 });
         }, 60000);
-    </script>
-    <script>
-        function closeBanner(button) {
-            button.parentElement.style.display = "none";
-        }
-    </script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-        fetch('/run_crew')
-            .then(response => response.text()) // Parse the response as plain text
-            .then(data => {
-                let banner = document.getElementById("app-leaks");
-                if (data) {
-                    // Update the banner content with the plain text data
-                    banner.innerHTML = data;
-                }
-            })
-            .catch(error => {
-                console.error("Error fetching leaks:", error);
-            });
-        });
-    </script>
-    <script>
-        document.getElementById("alerta").addEventListener("click", function(event) {
-            event.preventDefault(); // Previne o comportamento padrão do link
-            alert("SENHA COMPROMETIDA. TROQUE A SENHA ASSIM QUE POSSÍVEL");
-        });
     </script>
 </body>
 </html>

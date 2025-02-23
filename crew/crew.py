@@ -1,15 +1,30 @@
+"""Security Crew module for monitoring data leaks and security vulnerabilities."""
+
 from crewai import Agent, Crew, Task, Process, LLM
 from crewai.tools import tool
 from langchain_community.tools import DuckDuckGoSearchResults
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
+# Constants
+MODEL_NAME = "gpt-4o-mini"
+URLS_FILE = 'data/urls_to_monitor.txt'
 
 class SecurityCrew:
+    """Manages security analysis tasks using AI agents."""
+
     def __init__(self):
-        self.OpenAI = LLM(
-            model="gpt-4o-mini",
+        self.OpenAI = self._setup_llm()
+        self.security_researcher = self._create_researcher()
+        self.security_analyst = self._create_analyst()
+        self._analyze_leaks = self._create_analyze_leaks()
+        self.searching_tasks = []
+
+    def _setup_llm(self) -> LLM:
+        """Initialize LLM with specific parameters."""
+        load_dotenv()
+        return LLM(
+            model=MODEL_NAME,
             temperature=0.1,
             top_p=0.9,
             frequency_penalty=0.1,
@@ -17,8 +32,10 @@ class SecurityCrew:
             stop=["END"],
             seed=42
         )
-
-        self.security_researcher = Agent(
+        
+    def _create_researcher(self) -> Agent:
+        """Create security researcher agent."""
+        return Agent(
             role='Security Researcher',
             goal='Find the latest security vulnerabilities and exploits in the target systems.',
             backstory='An expert in cybersecurity with a focus on vulnerability assessment.',
@@ -29,7 +46,9 @@ class SecurityCrew:
             llm=self.OpenAI
         )
 
-        self.security_analyst = Agent(
+    def _create_analyst(self) -> Agent:
+        """Create security analyst agent."""
+        return Agent(
             role='Security Analyst',
             goal='Analyze the collected data and report any data leak issues.',
             backstory='A skilled analyst with a keen eye for security threats.',
@@ -40,10 +59,9 @@ class SecurityCrew:
             callback=self.post_action
         )
 
-        self.searching_tasks = []
-
-        self.analyze_leaks = Task(
-            description='Analyze the collected data and report any data leak issues.',
+    def _create_analyze_leaks(self) -> Task:
+        """Analyze data leaks and report issues."""
+        return Task(description='Analyze the collected data and report any data leak issues.',
             expected_output="""A report of all data leak issues found by the researchers. If it does not find any data leak issues, it should not be listed in the report. The report must be in Brazilian Portuguese.
             The report should follow the following format for each issue:
             **VAZAMENTO DE DADOS**
@@ -59,53 +77,48 @@ class SecurityCrew:
         )
 
     @staticmethod
-    def prepare_inputs(inputs):
-        # Read URLs from the file
-        with open('data/urls_to_monitor.txt', 'r') as file:
+    def prepare_inputs(inputs: dict) -> dict:
+        """Prepare input data for processing."""
+        with open(URLS_FILE, 'r') as file:
             urls = [line.strip() for line in file if line.strip()]
         inputs['urls_to_monitor'] = urls
         return inputs
 
     @staticmethod
-    def process_output(output):
-        # Modify output after the crew finishes
-        output.raw += "\nProcessed after kickoff."
-        print("Terminei de rodar tudo!")
-        return output
-
-    @staticmethod
     @tool("DuckDuckGo Search Tool")
     def search_tool(query: str) -> str:
-        """Search the web for a given query."""
-        duckduckgo_tool = DuckDuckGoSearchResults()
-        response = duckduckgo_tool.invoke(query)
-        return response
+        """Execute web search using DuckDuckGo."""
+        return DuckDuckGoSearchResults().invoke(query)
 
     @staticmethod
-    def post_action():
-        # Actions after the process ends
-        print("Terminei de rodar tudo!")
+    def post_action() -> None:
+        """Execute post-processing actions."""
+        print("Processing completed successfully!")
 
-    def run(self, inputs):
+    def run(self, inputs: dict) -> str:
+        """Execute security analysis workflow."""
         urls_to_monitor = inputs['urls_to_monitor']
 
+        # Create search tasks for each URL
         for url in urls_to_monitor:
             self.searching_tasks.append(
                 Task(
-                description='Search if any information was pwned from each of these applications: , during the last 30 days, considering today as {date}.',
-                expected_output=f'Informations of client data compromised from {url} in the last 30 days, giving details about the data compromised, the date of the leak, the type of data compromised, the number of clients affected, and the source of the leak.',
-                agent=self.security_researcher
+                    description='Search if any information was pwned from each of these applications: , during the last 30 days, considering today as {date}.',
+                    expected_output=f'Informations of client data compromised from {url} in the last 30 days, giving details about the data compromised, the date of the leak, the type of data compromised, the number of clients affected, and the source of the leak.',
+                    agent=self.security_researcher
                 )
             )
 
-        self.searching_tasks.append(self.analyze_leaks)
+        # Add analysis task
+        self.searching_tasks.append(self._analyze_leaks)
 
-        self.security_crew = Crew(
+        # Configure and execute crew
+        crew = Crew(
             agents=[self.security_researcher, self.security_analyst],
             tasks=self.searching_tasks,
             process=Process.sequential,
-            verbose=True,
+            verbose=False,
         )
 
+        return crew.kickoff(inputs=inputs)
 
-        return self.security_crew.kickoff(inputs=inputs)

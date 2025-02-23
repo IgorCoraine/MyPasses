@@ -1,11 +1,14 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - MyPasses</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
+    <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
@@ -14,30 +17,64 @@
         {% endif %}
     {% endwith %}
     
+    <!-- First Time Setup Form -->
     {% if needs_setup %}
-        <h2>First Time Setup</h2>
+        <h2>Configuração Inicial</h2>
         <form method="POST" action="{{ url_for('setup') }}">
-            <input type="password" name="password" required placeholder="Create Master Password">
-            <input type="password" name="confirm_password" required placeholder="Confirm Master Password">
-            <button type="submit">Create Master Password</button>
+            <div class="password-container">
+                <input type="password" 
+                       name="password" 
+                       id="password" 
+                       required 
+                       placeholder="Criar Senha Mestra">
+                <i class="fas fa-eye" id="togglePassword"></i>
+            </div>
+            <div class="password-container">
+                <input type="password" 
+                       name="confirm_password" 
+                       id="confirm_password" 
+                       required 
+                       placeholder="Confirmar Senha Mestra">
+                <i class="fas fa-eye" id="toggleConfirmPassword"></i>
+            </div>
+            <button type="submit">Criar Senha Mestra</button>
         </form>
+
+    <!-- Login Form -->
     {% else %}
         <h2>Login</h2>
         <form method="POST">
-            <input type="password" name="password" required placeholder="Master Password">
-            <button type="submit">Login</button>
+            <div class="password-container">
+                <input type="password" 
+                       name="password" 
+                       id="password" 
+                       required 
+                       placeholder="Senha Mestra">
+                <i class="fas fa-eye" id="togglePassword"></i>
+            </div>
+            <button type="submit">Entrar</button>
         </form>
     {% endif %}
+
+    <!-- Scripts -->
+    <script>
+        // Password Visibility Toggle
+        function setupPasswordToggle(toggleId, passwordId) {
+            const toggle = document.querySelector('#' + toggleId);
+            const password = document.querySelector('#' + passwordId);
+            
+            if (toggle && password) {
+                toggle.addEventListener('click', function () {
+                    const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                    password.setAttribute('type', type);
+                    this.classList.toggle('fa-eye-slash');
+                });
+            }
+        }
+
+        // Initialize Password Toggles
+        setupPasswordToggle('togglePassword', 'password');
+        setupPasswordToggle('toggleConfirmPassword', 'confirm_password');
+    </script>
 </body>
 </html>
-
-<script>
-    const togglePassword = document.querySelector('#togglePassword');
-    const password = document.querySelector('#password');
-    
-    togglePassword.addEventListener('click', function () {
-        const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
-        password.setAttribute('type', type);
-        this.classList.toggle('fa-eye-slash');
-    });
-</script>

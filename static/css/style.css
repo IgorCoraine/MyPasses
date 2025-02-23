@@ -1,19 +1,40 @@
-/* Common styles */
+/* ==========================================================================
+   Base styles and variables
+   ========================================================================== */
+:root {
+    --primary-color: #D56199;
+    --primary-dark: #861A60;
+    --bg-dark: #1a1a1a;
+    --bg-medium: #2d2d2d;
+    --bg-light: #333333;
+    --text-light: #ffffff;
+    --border-color: #444444;
+    --success-bg: #1e4a2e;
+    --success-text: #a8e6bc;
+    --error-bg: #4a1e1e;
+    --error-text: #e6a8a8;
+}
+
+/* ==========================================================================
+   Layout & Typography
+   ========================================================================== */
 body {
     font-family: Arial, sans-serif;
     max-width: 75rem;
     margin: 0 auto;
     padding: 1.25rem;
-    background-color: #1a1a1a;
-    color: #ffffff;
+    background-color: var(--bg-dark);
+    color: var(--text-light);
 }
 
 h2 {
-    color: #ffffff;
+    color: var(--text-light);
     margin-bottom: 1.875rem;
 }
 
-/* Navigation */
+/* ==========================================================================
+   Navigation Components
+   ========================================================================== */
 nav {
     margin-bottom: 1.25rem;
 }
@@ -22,23 +43,21 @@ nav a {
     margin-right: 0.625rem;
     padding: 0.5rem 1rem;
     text-decoration: none;
-    background-color: #D56199;
-    color: white;
+    background-color: var(--primary-color);
+    color: var(--text-light);
     border-radius: 0.188rem;
     transition: background-color 0.3s;
 }
 
 nav a:hover {
-    background-color: #861A60;
+    background-color: var(--primary-dark);
 }
 
-.crud{
-    margin-left: 1em;
-}
-
-/* Forms */
+/* ==========================================================================
+   Form Elements
+   ========================================================================== */
 form {
-    background: #2d2d2d;
+    background: var(--bg-medium);
     padding: 1.25rem;
     border-radius: 0.313rem;
     box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.3);
@@ -51,16 +70,16 @@ textarea {
     width: 100%;
     padding: 0.5rem;
     margin: 0.5rem 0;
-    border: 0.063rem solid #D56199;
+    border: 0.063rem solid var(--primary-color);
     border-radius: 0.25rem;
     box-sizing: border-box;
-    background-color: #333333;
-    color: #ffffff;
+    background-color: var(--bg-light);
+    color: var(--text-light);
 }
 
 button {
-    background-color: #D56199;
-    color: white;
+    background-color: var(--primary-color);
+    color: var(--text-light);
     padding: 0.5rem 1rem;
     border: none;
     border-radius: 0.25rem;
@@ -69,48 +88,56 @@ button {
 }
 
 button:hover {
-    background-color: #861A60;
+    background-color: var(--primary-dark);
 }
 
-/* Table styles */
+/* ==========================================================================
+   Table Styles
+   ========================================================================== */
 table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 1.25rem;
-    background: #2d2d2d;
+    background: var(--bg-medium);
     box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.3);
 }
 
 th, td {
     padding: 0.75rem;
     text-align: left;
-    border-bottom: 0.063rem solid #444444;
+    border-bottom: 0.063rem solid var(--border-color);
 }
 
 th {
-    background-color: #333333;
-    color: #ffffff;
+    background-color: var(--bg-light);
+    color: var(--text-light);
 }
 
 tr:hover {
     background-color: #383838;
 }
 
-/* Flash messages */
+/* ==========================================================================
+   Utility Classes
+   ========================================================================== */
 .success {
-    background-color: #1e4a2e;
-    color: #a8e6bc;
+    background-color: var(--success-bg);
+    color: var(--success-text);
     padding: 0.625rem;
     margin: 0.625rem 0;
     border-radius: 0.25rem;
 }
 
 .error {
-    background-color: #4a1e1e;
-    color: #e6a8a8;
+    background-color: var(--error-bg);
+    color: var(--error-text);
     padding: 0.625rem;
     margin: 0.625rem 0;
     border-radius: 0.25rem;
+}
+
+.crud {
+    margin-left: 1em;
 }
 
 /* Links */
@@ -123,6 +150,13 @@ a:not(.button):hover {
     color: #861A60;
 }
 
+.hidden {
+    display: none;
+}
+
+/* ==========================================================================
+   Password Container
+   ========================================================================== */
 .password-container {
     position: relative;
     display: inline-block;
@@ -141,29 +175,29 @@ a:not(.button):hover {
     padding-right: 1.875rem;
 }
 
+/* ==========================================================================
+   Notification Components
+   ========================================================================== */
 .notification {
     position: relative;
     width: 100%;
     padding: 0.5rem;
     text-align: center;
-    background-color: #2d2d2d;
-    color: #D56199;
+    background-color: var(--bg-medium);
+    color: var(--primary-color);
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;  /* Mudado para flex-start */
+    align-items: flex-start;
     border-radius: 5px;
     box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-    opacity: 1;
-    transition: opacity 0.3s ease;
     margin-bottom: 0.5em;
 }
 
 .notification button {
     background: none;
     border: none;
-    color: #D56199;
+    color: var(--primary-color);
     font-size: 2rem;
-    cursor: pointer;
     padding: 0;
     margin: 0;
     line-height: 1;
@@ -171,15 +205,15 @@ a:not(.button):hover {
     top: 0.2rem;
     right: 0.5rem;
 }
-.notification span{
+
+.notification span {
     font-weight: bold;
 }
 
 .notification p {
-    flex-grow: 1;  /* Faz o texto ocupar o máximo de espaço possível */
-    text-align: center;  /* Centraliza o texto */
-    margin: 0; /* Remove margens padrão do `<p>` */
-    display: block;
+    flex-grow: 1;
+    text-align: center;
+    margin: 0;
 }
 
 .inline-icon {
@@ -188,12 +222,9 @@ a:not(.button):hover {
     vertical-align: middle;
 }
 
-.hidden {
-    display: none;
-}
-
-
-/* Media Queries for Responsiveness */
+/* ==========================================================================
+   Media Queries
+   ========================================================================== */
 @media screen and (max-width: 48rem) {
     table {
         display: block;
