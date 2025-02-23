@@ -117,7 +117,8 @@ class SecurityCrew:
             agents=[self.security_researcher, self.security_analyst],
             tasks=self.searching_tasks,
             process=Process.sequential,
-            verbose=False,
+            verbose=True,
+            timeout=300  # 5 minutes timeout
         )
 
         return crew.kickoff(inputs=inputs)

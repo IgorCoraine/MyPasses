@@ -171,7 +171,7 @@ def delete_password(title):
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
 def change_password():
-    """Change master password."""
+    """Change master password and re-encrypt stored passwords."""
     if request.method == 'POST':
         current_password = request.form.get('current_password')
         new_password = request.form.get('new_password')
@@ -185,14 +185,24 @@ def change_password():
             flash('As novas senhas não coincidem', 'error')
             return redirect(url_for('change_password'))
             
-        salt = generate_salt()
-        save_master_password(new_password, salt)
+        # Get current stored passwords before changing master password
+        salt = b'initial_salt'
+        stored_passwords = get_stored_passwords(current_password, salt)
+        
+        # Generate new salt and save new master password
+        new_salt = generate_salt()
+        save_master_password(new_password, new_salt)
+        
+        # Re-encrypt all stored passwords with new master password
+        save_passwords(stored_passwords, new_password, salt)
+        
+        # Update session with new master password
+        session['master_password'] = new_password
         
         flash('Senha alterada com sucesso', 'success')
         return redirect(url_for('dashboard'))
         
     return render_template('change_password.html')
-
 @app.route('/run_crew')
 @login_required
 def run_crew():
@@ -208,8 +218,12 @@ def run_crew():
             'urls_to_monitor': urls_to_monitor, 
             'date': str(datetime.now())
         }
-        data_leaks = str(crew.run(inputs=inputs))
-        session['leaks'] = markdown.markdown(data_leaks)
+        try:
+            data_leaks = str(crew.run(inputs=inputs))
+            session['leaks'] = markdown.markdown(data_leaks)
+        except Exception as e:
+            flash(f'Erro ao executar a análise: {e}', 'error')
+            session['leaks'] = "Erroo ao executar a análise"
 
     return session.get('leaks')
 

@@ -8,6 +8,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
     <!-- Security Notifications Section -->
     {% if pwneds %}
         {% for item in pwneds %}
@@ -81,7 +90,7 @@
                     <td>
                         {% for item in pwneds %}
                             {% if item.url == entry.url %}
-                                <i class="fas fa-exclamation-triangle" id="alerta" style="color: red;"></i>
+                                <i class="fas fa-exclamation-triangle alerta" style="color: red;"></i>
                             {% endif %}
                         {% endfor %}
                     </td>
@@ -124,10 +133,14 @@
                 });
         });
 
-        // Alert Handler
-        document.getElementById("alerta")?.addEventListener("click", function(event) {
-            event.preventDefault();
-            alert("SENHA COMPROMETIDA. TROQUE A SENHA ASSIM QUE POSSÍVEL");
+        document.addEventListener("DOMContentLoaded", function() {
+            const alertas = document.querySelectorAll(".alerta");
+            alertas.forEach(alerta => {
+                alerta.addEventListener("click", function(event) {
+                    event.preventDefault();
+                    alert("SENHA COMPROMETIDA. TROQUE A SENHA ASSIM QUE POSSÍVEL");
+                });
+            });
         });
 
         // Session Check
@@ -140,6 +153,19 @@
                     }
                 });
         }, 60000);
+
+        // Auto-hide flash messages after 3 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashMessages = document.querySelectorAll('.success, .error');
+            flashMessages.forEach(function(message) {
+                setTimeout(function() {
+                    message.style.opacity = '0';
+                    setTimeout(function() {
+                        message.remove();
+                    }, 300);
+                }, 3000);
+            });
+        });
     </script>
 </body>
 </html>
