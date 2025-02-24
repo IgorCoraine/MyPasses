@@ -12,7 +12,7 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-                <div class="{{ category }}">{{ message }}</div>
+                <div class="flash-message {{ category }}" onload="startCountdown(this)">{{ message }}</div>
             {% endfor %}
         {% endif %}
     {% endwith %}
@@ -21,6 +21,7 @@
     {% if needs_setup %}
         <h2>Configuração Inicial</h2>
         <form method="POST" action="{{ url_for('setup') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="password-container">
                 <input type="password" 
                        name="password" 
@@ -44,6 +45,7 @@
     {% else %}
         <h2>Login</h2>
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="password-container">
                 <input type="password" 
                        name="password" 
@@ -76,16 +78,24 @@
         setupPasswordToggle('togglePassword', 'password');
         setupPasswordToggle('toggleConfirmPassword', 'confirm_password');
 
-        // Auto-hide flash messages after 3 seconds
+        // Countdown Timer
         document.addEventListener('DOMContentLoaded', function() {
-            const flashMessages = document.querySelectorAll('.success, .error');
+            const flashMessages = document.querySelectorAll('.timeout');
             flashMessages.forEach(function(message) {
-                setTimeout(function() {
-                    message.style.opacity = '0';
-                    setTimeout(function() {
-                        message.remove();
-                    }, 500);
-                }, 5000);
+                fixed_message = message.textContent;
+                if (message) {
+                    let timeLeft = 60; // Initial time in seconds
+
+                    const interval = setInterval(() => {
+                        timeLeft -= 1;
+                        message.textContent = fixed_message+'('+timeLeft+')';
+
+                        if (timeLeft <= 0) {
+                            clearInterval(interval);
+                            message.remove(); // Removes the message after countdown is finished
+                        }
+                    }, 1000); // Update every second
+                }
             });
         });
     </script>

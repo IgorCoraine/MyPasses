@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Erro - MyPasses</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="error-container">
+        <h1>{{ error }}</h1>
+        <a href="{{ url_for('dashboard') }}">Voltar ao Dashboard</a>
+    </div>
+</body>
+</html>

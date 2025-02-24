@@ -1,3 +1,6 @@
-instance/master.json
-instance/keys.keys
 .env
+instance/
+data/
+__pycache__/
+*.pyc
+crew/__pycache__/

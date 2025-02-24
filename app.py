@@ -3,7 +3,9 @@ MyPasses - Password Manager Application
 Main application module handling routes and user interactions.
 """
 
+from http.client import HTTPException
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask_wtf.csrf import CSRFProtect
 from functools import wraps
 from utils import (
     generate_salt, save_master_password, save_url_to_monitor, encrypt_data, save_passwords,
@@ -14,9 +16,39 @@ from config import Config
 from datetime import datetime, timedelta
 from crew.crew import SecurityCrew
 import os, markdown
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_limiter.errors import RateLimitExceeded
 
 app = Flask(__name__)
+csrf = CSRFProtect(app)
 app.config.from_object(Config)
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Strict',
+    PERMANENT_SESSION_LIFETIME=timedelta(minutes=5)
+)
+
+# Eror Handling and Rate Limiting
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["100 per day", "30 per hour"]
+)
+
+@app.errorhandler(RateLimitExceeded)
+def handle_ratelimit_exceeded(e):
+    flash('Muitas tentativas de login. Por favor, aguarde 60 segundos antes de tentar novamente.', 'error timeout')
+    needs_setup = not os.path.exists(Config.MASTER_PASSWORD_FILE)
+    return render_template('login.html', needs_setup=needs_setup), 200
+
+@app.errorhandler(Exception)
+def handle_error(error):
+    if isinstance(error, HTTPException):
+        return render_template('error.html', error=error), error.code
+    return render_template('error.html', error="Internal Server Error"), 500
+
 
 def login_required(f):
     """Authentication and session management decorator."""
@@ -43,6 +75,7 @@ def index():
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("3 per minute")
 def login():
     """Handle user login."""
     if request.method == 'POST':
@@ -273,3 +306,4 @@ def check_session():
 
 if __name__ == '__main__':
     app.run(debug=False)
+
