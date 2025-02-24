@@ -133,7 +133,7 @@ def add_password():
     }
 
     save_url_to_monitor(data['url'])
-    save_password_entry(data['title'], data, master_password, b'initial_salt')
+    save_password_entry(data['title'], data, master_password)
     flash('Senha adicionada com sucesso', 'success')
     return redirect(url_for('dashboard'))
 
@@ -147,7 +147,7 @@ def edit_password(title):
         return redirect(url_for('login'))
 
     salt = b'initial_salt'
-    stored_passwords = get_stored_passwords(master_password, salt)
+    stored_passwords = get_stored_passwords(master_password)
     password_data = next((p for p in stored_passwords if p['title'] == title), None)
 
     if not password_data:
@@ -183,7 +183,7 @@ def delete_password(title):
         return redirect(url_for('login'))
 
     salt = b'initial_salt'
-    stored_passwords = get_stored_passwords(master_password, salt)
+    stored_passwords = get_stored_passwords(master_password)
     updated_passwords = [p for p in stored_passwords if p['title'] != title]
     
     for password in stored_passwords:
@@ -219,15 +219,15 @@ def change_password():
             return redirect(url_for('change_password'))
             
         # Get current stored passwords before changing master password
-        salt = b'initial_salt'
-        stored_passwords = get_stored_passwords(current_password, salt)
+        stored_passwords = get_stored_passwords(current_password)
         
         # Generate new salt and save new master password
         new_salt = generate_salt()
         save_master_password(new_password, new_salt)
         
         # Re-encrypt all stored passwords with new master password
-        save_passwords(stored_passwords, new_password, salt)
+        for password in stored_passwords:
+            save_password_entry(password['title'], password, new_password)
         
         # Update session with new master password
         session['master_password'] = new_password
@@ -242,7 +242,7 @@ def run_crew():
     """Execute security crew analysis."""
     master_password = session.get('master_password')
     salt = b'initial_salt'
-    stored_passwords = get_stored_passwords(master_password, salt)
+    stored_passwords = get_stored_passwords(master_password)
     
     if not session.get('leaks', False):
         urls_to_monitor = [p['url'] for p in stored_passwords]
@@ -270,8 +270,7 @@ def dashboard():
         flash('Sessão expirada. Por favor, faça login novamente.', 'error')
         return redirect(url_for('login'))
         
-    salt = b'initial_salt'
-    stored_passwords = get_stored_passwords(master_password, salt)
+    stored_passwords = get_stored_passwords(master_password)
     pwned_itens = check_password_pwned(stored_passwords)
 
     return render_template('dashboard.html', 

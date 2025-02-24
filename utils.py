@@ -62,13 +62,19 @@ def decrypt_data(encrypted_data: bytes, password: str, salt: bytes) -> dict:
     return json.loads(f.decrypt(encrypted_data))
 
 # Password Management Functions
-def save_password_entry(title: str, data: dict, master_password: str, salt: bytes) -> None:
-    """Save encrypted password entry to storage."""
+def save_password_entry(title: str, data: dict, master_password: str) -> None:
+    """Save encrypted password entry with its salt."""
+    salt = generate_salt()  # Gera salt único
     encrypted_data = encrypt_data(data, master_password, salt)
-    os.makedirs(os.path.dirname(Config.PASSWORDS_FILE), exist_ok=True)
     
+    entry_data = {
+        'salt': base64.b64encode(salt).decode('utf-8'),
+        'data': encrypted_data.decode('utf-8')
+    }
+    
+    os.makedirs(os.path.dirname(Config.PASSWORDS_FILE), exist_ok=True)
     with open(Config.PASSWORDS_FILE, 'ab') as f:
-        entry = f"{title}: {encrypted_data.decode('utf-8')}\n"
+        entry = f"{title}: {json.dumps(entry_data)}\n"
         f.write(entry.encode('utf-8'))
 
 def verify_master_password(password: str) -> bool:
@@ -104,21 +110,22 @@ def save_master_password(password: str, salt: bytes) -> None:
     with open(Config.MASTER_PASSWORD_FILE, 'wb') as f:
         f.write(encrypted_data)
 
-def get_stored_passwords(password: str, salt: bytes) -> list:
-    """Retrieve and decrypt stored passwords."""
+def get_stored_passwords(password: str) -> list:
+    """Retrieve and decrypt stored passwords using their unique salts."""
     if not os.path.exists(Config.PASSWORDS_FILE):
         return []
         
     passwords = []
-    key = Fernet(get_encryption_key(password, b'initial_salt'))
-    
     with open(Config.PASSWORDS_FILE, 'rb') as f:
         for line in f:
             if line.strip():
-                title, encrypted_data = line.decode('utf-8').strip().split(': ', 1)
-                encrypted_bytes = encrypted_data.encode('utf-8')
+                title, entry_data = line.decode('utf-8').strip().split(': ', 1)
+                entry = json.loads(entry_data)
+                salt = base64.b64decode(entry['salt'])
+                encrypted_bytes = entry['data'].encode('utf-8')
+                
                 try:
-                    decrypted_data = json.loads(key.decrypt(encrypted_bytes))
+                    decrypted_data = decrypt_data(encrypted_bytes, password, salt)
                     stored_data = {
                         'title': title,
                         'username': decrypted_data['username'],
