@@ -251,12 +251,15 @@ def run_crew():
             'urls_to_monitor': urls_to_monitor, 
             'date': str(datetime.now())
         }
-        try:
-            data_leaks = str(crew.run(inputs=inputs))
-            session['leaks'] = markdown.markdown(data_leaks)
-        except Exception as e:
-            flash(f'Erro ao executar a análise: {e}', 'error')
-            session['leaks'] = "Erroo ao executar a análise"
+        if len(urls_to_monitor) > 0:
+            try:
+                data_leaks = str(crew.run(inputs=inputs))
+                session['leaks'] = markdown.markdown(data_leaks)
+            except Exception as e:
+                flash(f'Erro ao executar a análise: {e}', 'error')
+                session['leaks'] = "Erroo ao executar a análise"
+        else:
+            session['leaks'] = "Não há vazamentos para analisar"
 
     return session.get('leaks')
 

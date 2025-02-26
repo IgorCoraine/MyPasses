@@ -4,7 +4,7 @@ data/
 __pycache__/
 *.pyc
 crew/__pycache__/
-venv3_11/
-venv3_11/*
+venv/
+venv/*
 *.so
 *.so.*
