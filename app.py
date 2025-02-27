@@ -47,7 +47,7 @@ def handle_ratelimit_exceeded(e):
 def handle_error(error):
     if isinstance(error, HTTPException):
         return render_template('error.html', error=error), error.code
-    return render_template('error.html', error="Internal Server Error"), 500
+    return render_template('error.html', error="Internal Server Error: "+error), 500
 
 
 def login_required(f):
@@ -75,13 +75,14 @@ def index():
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("3 per minute")
+@limiter.limit("5 per minute")
 def login():
     """Handle user login."""
     if request.method == 'POST':
+        user = request.form.get('user') 
         password = request.form.get('password')
         
-        if verify_master_password(password):
+        if verify_master_password(user, password):
             session['authenticated'] = True
             session['master_password'] = password
             session['last_activity'] = datetime.now().isoformat()
@@ -91,13 +92,13 @@ def login():
     needs_setup = not os.path.exists(Config.MASTER_PASSWORD_FILE)
     return render_template('login.html', needs_setup=needs_setup)
 
-@app.route('/setup', methods=['POST'])
+@app.route('/setup', methods=['GET', 'POST'])
 def setup():
     """Initial master password setup."""
-    if os.path.exists(Config.MASTER_PASSWORD_FILE):
-        flash('Configuração já realizada', 'error')
-        return redirect(url_for('login'))
-        
+    if request.method == 'GET':
+        return render_template('login.html', needs_setup=True)
+
+    user = request.form.get('user')    
     password = request.form.get('password')
     confirm_password = request.form.get('confirm_password')
     
@@ -106,7 +107,7 @@ def setup():
         return redirect(url_for('login'))
         
     salt = generate_salt()
-    save_master_password(password, salt)
+    save_master_password(user, password, salt)
     
     flash('Senha mestra criada com sucesso', 'success')
     return redirect(url_for('login'))
@@ -206,11 +207,12 @@ def delete_password(title):
 def change_password():
     """Change master password and re-encrypt stored passwords."""
     if request.method == 'POST':
+        user = request.form.get('user')
         current_password = request.form.get('current_password')
         new_password = request.form.get('new_password')
         confirm_password = request.form.get('confirm_password')
         
-        if not verify_master_password(current_password):
+        if not verify_master_password(user, current_password):
             flash('Senha atual incorreta', 'error')
             return redirect(url_for('change_password'))
             
@@ -223,7 +225,7 @@ def change_password():
         
         # Generate new salt and save new master password
         new_salt = generate_salt()
-        save_master_password(new_password, new_salt)
+        save_master_password(user, new_password, new_salt)
         
         # Re-encrypt all stored passwords with new master password
         for password in stored_passwords:

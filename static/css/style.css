@@ -90,6 +90,20 @@ button {
 button:hover {
     background-color: var(--primary-dark);
 }
+.setup-option {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.setup-link {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.setup-link:hover {
+    text-decoration: underline;
+}
 
 /* ==========================================================================
    Table Styles

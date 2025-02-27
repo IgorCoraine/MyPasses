@@ -8,7 +8,8 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC 
 from config import Config
 import secrets, base64, hashlib  
-import os, string, json, requests
+import os, string, json, requests, fcntl
+from filelock import FileLock
 
 # Cryptographic Functions
 def generate_salt() -> bytes:
@@ -61,6 +62,16 @@ def decrypt_data(encrypted_data: bytes, password: str, salt: bytes) -> dict:
     f = Fernet(key)
     return json.loads(f.decrypt(encrypted_data))
 
+# File management functions
+def with_file_lock(filename):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            lock = FileLock(filename + ".lock")
+            with lock:
+                return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
 # Password Management Functions
 def save_password_entry(title: str, data: dict, master_password: str) -> None:
     """Save encrypted password entry with its salt."""
@@ -77,26 +88,32 @@ def save_password_entry(title: str, data: dict, master_password: str) -> None:
         entry = f"{title}: {json.dumps(entry_data)}\n"
         f.write(entry.encode('utf-8'))
 
-def verify_master_password(password: str) -> bool:
-    """Verify master password against stored hash."""
+@with_file_lock(Config.MASTER_PASSWORD_FILE)
+def verify_master_password(username: str, password: str) -> bool:
     if not os.path.exists(Config.MASTER_PASSWORD_FILE):
         return False
         
     with open(Config.MASTER_PASSWORD_FILE, 'rb') as f:
-        encrypted_data = f.read()
-    
-    key = Fernet(get_encryption_key(password, b'initial_salt'))
-    try:
-        decrypted_data = json.loads(key.decrypt(encrypted_data))
-        stored_salt = base64.b64decode(decrypted_data['salt'].encode('utf-8'))
-        stored_password = base64.b64decode(decrypted_data['password'].encode('utf-8'))
-        
-        test_hash = hash_password(password, stored_salt)
-        return test_hash == stored_password
-    except:
-        return False
+        stored_data = json.loads(f.read())
 
-def save_master_password(password: str, salt: bytes) -> None:
+    for entry in stored_data.values():
+        try:
+            salt = base64.b64decode(entry['salt'])
+            key = Fernet(get_encryption_key(password, salt))
+            
+            decrypted_username = json.loads(key.decrypt(entry['encrypted_username'].encode()))
+            if decrypted_username == username:
+                decrypted_data = json.loads(key.decrypt(entry['encrypted_data'].encode()))
+                stored_password = base64.b64decode(decrypted_data['password'])
+                test_password = hash_password(password, salt)
+                return stored_password == test_password
+        except Exception:
+            continue
+            
+    return False
+
+@with_file_lock(Config.MASTER_PASSWORD_FILE)
+def save_master_password(username: str, password: str, salt: bytes) -> None:
     """Save master password hash and salt."""
     hashed_password = hash_password(password, salt)
     data = {
@@ -104,11 +121,22 @@ def save_master_password(password: str, salt: bytes) -> None:
         'salt': base64.b64encode(salt).decode('utf-8')
     }
     
-    key = Fernet(get_encryption_key(password, b'initial_salt'))
-    encrypted_data = key.encrypt(json.dumps(data).encode())
+    # Store salt separately for verification
+    entry = {
+        'salt': base64.b64encode(salt).decode('utf-8'),
+        'encrypted_data': Fernet(get_encryption_key(password, salt)).encrypt(json.dumps(data).encode()).decode('utf-8'),
+        'encrypted_username': Fernet(get_encryption_key(password, salt)).encrypt(json.dumps(username).encode()).decode('utf-8')
+    }
+
+    existing_data = {}
+    if os.path.exists(Config.MASTER_PASSWORD_FILE):
+        with open(Config.MASTER_PASSWORD_FILE, 'rb') as f:
+            existing_data = json.loads(f.read())
+    
+    existing_data[entry['encrypted_username']] = entry
     
     with open(Config.MASTER_PASSWORD_FILE, 'wb') as f:
-        f.write(encrypted_data)
+        f.write(json.dumps(existing_data).encode())
 
 def get_stored_passwords(password: str) -> list:
     """Retrieve and decrypt stored passwords using their unique salts."""
