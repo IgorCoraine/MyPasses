@@ -75,22 +75,25 @@ def index():
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
 def login():
-    """Handle user login."""
     if request.method == 'POST':
-        user = request.form.get('user') 
-        password = request.form.get('password')
-        
-        if verify_master_password(user, password):
-            session['authenticated'] = True
-            session['master_password'] = password
-            session['last_activity'] = datetime.now().isoformat()
-            return redirect(url_for('dashboard'))
-        flash('Senha inválida', 'error')
-    
+        return handle_login_attempt()
     needs_setup = not os.path.exists(Config.MASTER_PASSWORD_FILE)
     return render_template('login.html', needs_setup=needs_setup)
+
+@limiter.limit("3 per minute")
+def handle_login_attempt():
+    user = request.form.get('user') 
+    password = request.form.get('password')
+    
+    if verify_master_password(user, password):
+        session['authenticated'] = True
+        session['master_password'] = password
+        session['last_activity'] = datetime.now().isoformat()
+        limiter.reset()  # Reset the limit counter on successful login
+        return redirect(url_for('dashboard'))
+    flash('Senha inválida', 'error')
+    return render_template('login.html', needs_setup=False)
 
 @app.route('/setup', methods=['GET', 'POST'])
 def setup():
