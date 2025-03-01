@@ -171,19 +171,19 @@ def generate_random_password(length: int = 32) -> str:
     characters = string.ascii_letters + string.digits + string.punctuation
     return ''.join(secrets.choice(characters) for _ in range(length))
 
-def save_passwords(passwords: list, master_password: str, salt: bytes) -> None:
+def save_passwords(passwords: list, master_password: str) -> None:
     """Save updated password list to storage."""
-    key = Fernet(get_encryption_key(master_password, salt))
+    os.makedirs(os.path.dirname(Config.PASSWORDS_FILE), exist_ok=True)
     with open(Config.PASSWORDS_FILE, 'wb') as f:
         for entry in passwords:
             title = entry['title']
-            encrypted_data = key.encrypt(json.dumps({
-                'username': entry['username'],
-                'password': entry['password'],
-                'url': entry['url'],
-                'notes': entry['notes']
-            }).encode('utf-8'))
-            f.write(f"{title}: {encrypted_data.decode('utf-8')}\n".encode('utf-8'))
+            salt = generate_salt()  # Generate unique salt for each entry
+            encrypted_data = encrypt_data(entry, master_password, salt)
+            entry_data = {
+                'salt': base64.b64encode(salt).decode('utf-8'),
+                'data': encrypted_data.decode('utf-8')
+            }
+            f.write(f"{title}: {json.dumps(entry_data)}\n".encode('utf-8'))
 
 # URL Monitoring Functions
 def save_url_to_monitor(url: str) -> None:

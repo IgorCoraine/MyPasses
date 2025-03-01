@@ -47,7 +47,7 @@ def handle_ratelimit_exceeded(e):
 def handle_error(error):
     if isinstance(error, HTTPException):
         return render_template('error.html', error=error), error.code
-    return render_template('error.html', error="Internal Server Error: "+error), 500
+    return render_template('error.html', error="Internal Server Error: " + str(error)), 500
 
 
 def login_required(f):
@@ -90,7 +90,7 @@ def handle_login_attempt():
         session['authenticated'] = True
         session['master_password'] = password
         session['last_activity'] = datetime.now().isoformat()
-        limiter.reset()  # Reset the limit counter on successful login
+        limiter.reset() 
         return redirect(url_for('dashboard'))
     flash('Senha inválida', 'error')
     return render_template('login.html', needs_setup=False)
@@ -150,7 +150,6 @@ def edit_password(title):
         flash('Sessão expirada. Por favor, faça login novamente.', 'error')
         return redirect(url_for('login'))
 
-    salt = b'initial_salt'
     stored_passwords = get_stored_passwords(master_password)
     password_data = next((p for p in stored_passwords if p['title'] == title), None)
 
@@ -171,7 +170,7 @@ def edit_password(title):
             if entry['title'] == title:
                 stored_passwords[idx] = updated_data
 
-        save_passwords(stored_passwords, master_password, salt)
+        save_passwords(stored_passwords, master_password)
         flash('Senha atualizada com sucesso', 'success')
         return redirect(url_for('dashboard'))
 
@@ -186,7 +185,6 @@ def delete_password(title):
         flash('Sessão expirada. Por favor, faça login novamente.', 'error')
         return redirect(url_for('login'))
 
-    salt = b'initial_salt'
     stored_passwords = get_stored_passwords(master_password)
     updated_passwords = [p for p in stored_passwords if p['title'] != title]
     
@@ -194,12 +192,7 @@ def delete_password(title):
         if password['title'] == title:
             delete_url_from_monitor(password['url'])
 
-    os.makedirs(os.path.dirname(Config.PASSWORDS_FILE), exist_ok=True)
-    with open(Config.PASSWORDS_FILE, 'wb') as f:
-        for entry in updated_passwords:
-            encrypted_data = encrypt_data(entry, master_password, salt)
-            entry_str = f"{entry['title']}: {encrypted_data.decode('utf-8')}\n"
-            f.write(entry_str.encode('utf-8'))
+    save_passwords(updated_passwords, master_password)
 
     flash('Senha deletada com sucesso', 'success')
     return redirect(url_for('dashboard'))
@@ -223,30 +216,28 @@ def change_password():
             flash('As novas senhas não coincidem', 'error')
             return redirect(url_for('change_password'))
             
-        # Get current stored passwords before changing master password
         stored_passwords = get_stored_passwords(current_password)
         
-        # Generate new salt and save new master password
         new_salt = generate_salt()
         save_master_password(user, new_password, new_salt)
         
-        # Re-encrypt all stored passwords with new master password
-        for password in stored_passwords:
-            save_password_entry(password['title'], password, new_password)
+        if os.path.exists(Config.PASSWORDS_FILE):
+            os.remove(Config.PASSWORDS_FILE)
+            
+        save_passwords(stored_passwords, new_password)
         
-        # Update session with new master password
         session['master_password'] = new_password
         
         flash('Senha alterada com sucesso', 'success')
         return redirect(url_for('dashboard'))
         
     return render_template('change_password.html')
+
 @app.route('/run_crew')
 @login_required
 def run_crew():
     """Execute security crew analysis."""
     master_password = session.get('master_password')
-    salt = b'initial_salt'
     stored_passwords = get_stored_passwords(master_password)
     
     if not session.get('leaks', False):
