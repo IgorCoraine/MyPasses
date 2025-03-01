@@ -2,10 +2,7 @@
 
 MyPasses é um gerenciador de senhas seguro e self-hosted desenvolvido em Python, focado em privacidade e segurança dos dados.
 
-<video width="100%" height="auto" autoplay loop muted>
-  <source src="static/videos/MyPasses.mp4" type="video/mp4">
-  Seu navegador não suporta a tag de vídeo.
-</video>
+![Gif demonstrativo](static/images/MyPasses.gif)
 
 ## Principais Funcionalidades
 
