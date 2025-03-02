@@ -20,16 +20,24 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_limiter.errors import RateLimitExceeded
 
+from flask_session import Session
+from redis import Redis
+
 app = Flask(__name__)
 csrf = CSRFProtect(app)
 app.config.from_object(Config)
+
+# Redis Session Configuration
+app.config['SESSION_TYPE'] = 'redis'
+app.config['SESSION_REDIS'] = Redis(host='redis', port=6379)
+Session(app)
+
 app.config.update(
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Strict',
     PERMANENT_SESSION_LIFETIME=timedelta(minutes=5)
 )
-
 # Eror Handling and Rate Limiting
 limiter = Limiter(
     app=app,

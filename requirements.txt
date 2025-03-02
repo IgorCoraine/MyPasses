@@ -14,6 +14,7 @@ bcrypt==4.2.1
 beautifulsoup4==4.13.3
 blinker==1.9.0
 build==1.2.2.post1
+cachelib==0.13.0
 cachetools==5.5.1
 certifi==2025.1.31
 cffi==1.17.1
@@ -43,10 +44,13 @@ fastavro==1.10.0
 filelock==3.17.0
 Flask==3.1.0
 Flask-Limiter==3.10.1
+Flask-Session==0.8.0
 Flask-WTF==1.2.2
 flatbuffers==25.2.10
 frozenlist==1.5.0
 fsspec==2025.2.0
+gitdb==4.0.12
+GitPython==3.1.44
 google-api-core==2.24.1
 google-auth==2.38.0
 google-cloud-aiplatform==1.80.0
@@ -115,6 +119,7 @@ mem0ai==0.1.49
 mmh3==5.1.0
 monotonic==1.6
 mpmath==1.3.0
+msgspec==0.19.0
 multidict==6.1.0
 mypy-extensions==1.0.0
 networkx==3.4.2
@@ -152,6 +157,7 @@ prompt_toolkit==3.0.50
 propcache==0.2.1
 proto-plus==1.26.0
 protobuf==5.29.3
+psutil==7.0.0
 ptyprocess==0.7.0
 pure_eval==0.2.3
 pyarrow==19.0.0
@@ -179,6 +185,7 @@ PyYAML==6.0.2
 qdrant-client==1.13.2
 referencing==0.36.2
 regex==2024.11.6
+regis==0.1.88
 requests==2.32.3
 requests-oauthlib==2.0.0
 requests-toolbelt==1.0.0
@@ -189,6 +196,7 @@ schema==0.7.7
 shapely==2.0.7
 shellingham==1.5.4
 six==1.17.0
+smmap==5.0.2
 sniffio==1.3.1
 soupsieve==2.6
 SQLAlchemy==2.0.38
@@ -197,6 +205,7 @@ starlette==0.45.3
 sympy==1.13.3
 tabulate==0.9.0
 tenacity==9.0.0
+termcolor==2.5.0
 tiktoken==0.7.0
 tokenizers==0.20.3
 tomli==2.2.1
@@ -212,6 +221,7 @@ urllib3==2.3.0
 uv==0.6.0
 uvicorn==0.34.0
 uvloop==0.21.0
+watchdog==6.0.0
 watchfiles==1.0.4
 wcwidth==0.2.13
 websocket-client==1.8.0
