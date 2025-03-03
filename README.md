@@ -60,3 +60,46 @@ MyPasses é um gerenciador de senhas seguro e self-hosted desenvolvido em Python
 - Copiar senhas com um clique
 - Edição rápida de credenciais
 - Notas seguras por entrada
+
+## Como Executar
+
+### Pré-requisitos
+- Python 3.11
+- pip (Python package manager)
+
+### Instalação
+```bash
+git clone https://github.com/IgorCoraine/MyPasses.git
+```
+
+```bash
+cd MyPasses
+```
+```bash
+python -m venv venv
+```
+```bash
+source venv/bin/activate #linux
+source venv/Scripts/activate #windows
+```
+```bash
+pip install -r requirements.txt
+```
+
+### Configuração
+1. Crie um arquivo `.env` na raiz do projeto
+2. Adicione as seguintes variáveis:
+```env
+OPENAI_API_KEY=your_openai_api_key
+MASTER_PASSWORD_FILE=your_master_password_file.bin
+PASSWORDS_FILE=your_passwords_file.bin
+URLS_MONITOR_FILE=your_urls_monitor_file.txt
+SESSION_TIMEOUT=your_session_timeout_in_seconds
+```
+
+### Executando
+```bash
+python app.py
+```
+
+Acesse `http://localhost:5000` no seu navegador
